@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>MUZIKA · Playlist compartida</title>
+<link rel="icon" href="logo.png">
+<style>
+  :root {
+    --bg: #0d0b12; --panel: #17141f; --surface: #221d2d; --text: #f5f2fa; --text-sec: #a79fb6;
+    --accent: #ff2e93; --violet: #7b3bff; --orange: #ffa62b;
+    --brand: linear-gradient(120deg, var(--violet), var(--accent) 55%, var(--orange));
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  header img { width: 34px; height: 34px; border-radius: 8px; }
+  header b { letter-spacing: 2px; }
+  .hero { background: linear-gradient(180deg, #3b1f5c, var(--panel)); border-radius: 16px; padding: 20px; }
+  .kind { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-sec); }
+  h1 { margin: 6px 0 4px; font-size: 28px; line-height: 1.15; word-break: break-word; }
+  .sub { color: var(--text-sec); }
+  .btn { display: inline-block; border: 0; border-radius: 999px; padding: 12px 22px; font: inherit; font-weight: 700; color: #fff; background: var(--brand); cursor: pointer; text-decoration: none; }
+  .btn.ghost { background: transparent; border: 1px solid #ffffff44; }
+  .btn:disabled { opacity: .5; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .card { background: var(--panel); border-radius: 16px; padding: 18px; margin-top: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 18px; }
+  label { display: block; font-size: 13px; color: var(--text-sec); margin: 12px 0 4px; }
+  input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid transparent; background: var(--surface); color: var(--text); font: inherit; outline: none; }
+  input:focus { border-color: var(--accent); }
+  .msg { min-height: 1.4em; margin-top: 10px; color: var(--orange); }
+  ol { list-style: none; padding: 0; margin: 8px 0 0; }
+  li { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #ffffff10; }
+  li img, li .ph { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; flex: none; background: var(--surface); }
+  li .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  li .a { color: var(--text-sec); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  li .by { margin-left: auto; color: var(--text-sec); font-size: 12px; flex: none; }
+  li > div { min-width: 0; }
+  .muted { color: var(--text-sec); font-size: 13px; }
+  .kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip { padding: 7px 14px; border-radius: 999px; background: var(--surface); color: var(--text-sec); cursor: pointer; font-size: 14px; }
+  .chip.on { background: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="logo.png" alt=""><b>MUZIKA</b></header>
+  <div id="app"><p class="muted">Cargando…</p></div>
+</div>
+<script>
+// Página pública de una playlist compartida de MUZIKA: abre la app o, en una fiesta,
+// deja añadir canciones desde el navegador. No guarda ninguna clave: el proyecto y la
+// playlist vienen en el propio enlace (#p=<proyecto>&id=<playlist>).
+const params = new URLSearchParams(location.hash.slice(1));
+const project = params.get('p'), id = params.get('id');
+const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
+const APK = 'https://github.com/YipikayeiGit/Myusic/releases/download/latest/Muzika.apk';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function decode(v) {
+  if (!v) return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('nullValue' in v) return null;
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(decode);
+  if ('mapValue' in v) { const o = {}; for (const [k, x] of Object.entries(v.mapValue.fields || {})) o[k] = decode(x); return o; }
+  return null;
+}
+function encode(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(encode) } };
+  if (typeof v === 'object') { const f = {}; for (const [k, x] of Object.entries(v)) f[k] = encode(x); return { mapValue: { fields: f } }; }
+  return { stringValue: String(v) };
+}
+// Mismo identificador que usa la app para canciones escritas a mano.
+const key = (t, a) => (t + '|' + a).toLowerCase().normalize('NFD').replace(/\p{Mn}+/gu, '').replace(/[^a-z0-9|]+/g, '');
+
+// Igual que en la app: en una fiesta, una canción de cada persona por turnos.
+function ordered(s) {
+  const seen = new Set(); const items = (s.items || []).filter(i => i && i.t && !seen.has(i.id || key(i.t, i.a || '')) && seen.add(i.id || key(i.t, i.a || '')));
+  if (s.mode !== 'party') return items;
+  const groups = new Map();
+  items.slice().sort((x, y) => (x.at || 0) - (y.at || 0)).forEach(i => { const g = i.u || 'n:' + (i.by || '').toLowerCase(); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); });
+  const out = []; let left = true;
+  while (left) { left = false; for (const q of groups.values()) if (q.length) { out.push(q.shift()); left = true; } }
+  return out;
+}
+
+let doc = null;
+let askKind = 'song';
+const GENRES = ['Pop', 'Rock', 'Rock español', 'Rock urbano', 'Indie', 'Reggaetón', 'Latino', 'Hip hop', 'Electrónica', 'Años 80', 'Años 90', '2000s', 'Flamenco', 'Rumba', 'Salsa', 'Bachata', 'Punk', 'Metal', 'Funk', 'Soul', 'Jazz', 'Reggae', 'K-pop'];
+async function load() {
+  const r = await fetch(`${base}/shared/${encodeURIComponent(id)}`);
+  if (r.status === 404) throw new Error('Esta playlist ya no existe.');
+  if (!r.ok) throw new Error('No se ha podido abrir (' + r.status + ').');
+  const j = await r.json(); const s = {};
+  for (const [k, v] of Object.entries(j.fields || {})) s[k] = decode(v);
+  s.open = s.mode === 'party' && !s.closed && Date.now() < (s.closesAt || 0);
+  return s;
+}
+
+function openApp() {
+  const isAndroid = /android/i.test(navigator.userAgent);
+  if (isAndroid) location.href = `intent://s/${id}#Intent;scheme=muzika;package=com.yipikayei.myusic;S.browser_fallback_url=${encodeURIComponent(APK)};end`;
+  else location.href = `muzika://s/${id}`;
+}
+
+function render(s) {
+  const list = ordered(s);
+  const party = s.party || {};
+  const emoji = party.emoji || '🎉';
+  const kinds = [...(party.songs !== false ? ['song'] : []), ...(party.artists !== false ? ['artist'] : []), ...(party.genres !== false ? ['genre'] : [])];
+  if (!kinds.includes(askKind)) askKind = kinds[0] || 'song';
+  const canAsk = s.open && kinds.length > 0;
+  const kind = s.mode === 'party' ? `${emoji} Fiesta de ${esc(s.ownerName)}` : s.mode === 'follow' ? `Playlist de ${esc(s.ownerName)}` : `Compartida por ${esc(s.ownerName)}`;
+  const until = s.closesAt ? new Date(s.closesAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+  const what = s.mode === 'party'
+    ? (!s.open ? 'Esta fiesta ya se ha cerrado.' : !canAsk ? `${esc(s.ownerName)} elige la música de esta fiesta.` : `Pide ${[kinds.includes('song') && 'canciones', kinds.includes('artist') && 'artistas', kinds.includes('genre') && 'géneros'].filter(Boolean).join(' o ')}: todo suena por turnos, una de cada persona. Si pides un artista o un género, irán sonando canciones de eso en tus turnos. Se cierra a las ${until}.`)
+    : s.mode === 'follow' ? 'Ábrela en MUZIKA para seguirla (siempre al día) o copiarla y tener la tuya.' : 'Ábrela en MUZIKA para uniros y añadir canciones juntos.';
+  const savedName = localStorage.getItem('muzikaName') || '';
+  $('#app').innerHTML = `
+    <div class="hero"><div class="kind">${kind}</div><h1>${esc(s.name)}</h1><div class="sub">${list.length} canciones</div>
+      <p>${what}</p>
+      <div class="actions"><button class="btn${s.open ? ' ghost' : ''}" id="openApp">Abrir en MUZIKA</button><a class="btn ghost" href="${APK}">Descargar MUZIKA (Android)</a></div></div>
+    ${canAsk ? `<div class="card"><h2>${emoji} Pedir algo</h2><div class="muted">No hace falta instalar nada.</div>
+      <label for="name">Tu nombre</label><input id="name" value="${esc(savedName)}" placeholder="Para que se sepa quién lo ha pedido" maxlength="40">
+      ${kinds.length > 1 ? `<div class="kinds">${kinds.map(k => `<span class="chip${k === askKind ? ' on' : ''}" data-k="${k}">${{ song: 'Canción', artist: 'Artista', genre: 'Género' }[k]}</span>`).join('')}</div>` : ''}
+      ${askKind === 'song' ? `<label for="title">Canción</label><input id="title" placeholder="Por ejemplo: Maldito duende" maxlength="120">
+      <label for="artist">Artista</label><input id="artist" placeholder="Por ejemplo: Héroes del Silencio" maxlength="120">`
+      : askKind === 'artist' ? `<label for="title">Artista</label><input id="title" placeholder="Por ejemplo: Héroes del Silencio" maxlength="120">`
+      : `<label for="title">Género</label><input id="title" placeholder="Por ejemplo: rock español" maxlength="60"><div class="kinds">${GENRES.map(g => `<span class="chip" data-g="${esc(g)}">${esc(g)}</span>`).join('')}</div>`}
+      <div class="actions"><button class="btn" id="add">${askKind === 'song' ? 'Añadir a la fiesta' : 'Pedir'}</button></div><div class="msg" id="msg"></div></div>` : ''}
+    ${(s.wishes || []).length ? `<div class="card"><h2>Peticiones</h2><div class="kinds">${s.wishes.map(w => `<span class="chip">${({ artist: '🎤', likes: '❤️', followed: '⭐' })[w.kind] || '🎶'} ${esc(w.name)}${w.by && w.kind !== 'likes' && w.kind !== 'followed' ? ' · ' + esc(w.by) : ''}</span>`).join('')}</div></div>` : ''}
+    <div class="card"><h2>Canciones</h2><ol>${list.map(i => `<li>${i.c ? `<img src="${esc(i.c)}" alt="">` : '<div class="ph"></div>'}<div><div class="t">${esc(i.t)}</div><div class="a">${esc(i.a)}</div></div>${i.by && s.mode === 'party' ? `<span class="by">${esc(i.by)}</span>` : ''}</li>`).join('') || '<p class="muted">Aún no hay canciones.</p>'}</ol></div>`;
+  $('#openApp').onclick = openApp;
+  document.querySelectorAll('[data-k]').forEach(c => c.onclick = () => {
+    const n = $('#name').value; askKind = c.dataset.k; render(s); $('#name').value = n; $('#title').focus();
+  });
+  document.querySelectorAll('[data-g]').forEach(c => c.onclick = () => { $('#title').value = c.dataset.g; $('#add').click(); });
+  const add = $('#add');
+  if (add) add.onclick = async () => {
+    const name = $('#name').value.trim(), title = $('#title').value.trim(), artist = $('#artist') ? $('#artist').value.trim() : '';
+    const msg = $('#msg');
+    if (!name) { msg.textContent = 'Pon tu nombre.'; return; }
+    if (!title) { msg.textContent = askKind === 'song' ? 'Escribe la canción.' : askKind === 'artist' ? 'Escribe el artista.' : 'Escribe el género.'; return; }
+    localStorage.setItem('muzikaName', name);
+    add.disabled = true; msg.textContent = 'Enviando…';
+    const now = Date.now();
+    const field = askKind === 'song' ? 'items' : 'wishes';
+    const value = askKind === 'song'
+      ? { id: 'q:' + key(title, artist), v: '', t: title, a: artist, al: '', c: '', d: 0, au: '', by: name, u: '', at: now }
+      : { k: Math.random().toString(36).slice(2, 12), kind: askKind, name: title, url: '', by: name, u: '', at: now };
+    const body = { writes: [{
+      update: { name: `projects/${project}/databases/(default)/documents/shared/${id}`, fields: { updatedAt: encode(now) } },
+      updateMask: { fieldPaths: ['updatedAt'] },
+      currentDocument: { exists: true },
+      updateTransforms: [{ fieldPath: field, appendMissingElements: { values: [encode(value)] } }],
+    }] };
+    try {
+      const r = await fetch(`${base}:commit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(r.status === 403 ? 'La fiesta ya se ha cerrado.' : 'No se ha podido añadir (' + r.status + ').');
+      $('#title').value = ''; if ($('#artist')) $('#artist').value = '';
+      msg.textContent = askKind === 'song' ? `¡Añadida «${title}»!` : `¡Pedido ${title}! Irán sonando canciones en tus turnos.`;
+      refresh();
+    } catch (e) { msg.textContent = e.message; }
+    add.disabled = false;
+  };
+}
+
+async function refresh() {
+  try {
+    const s = await load();
+    if (doc && JSON.stringify(doc.items) === JSON.stringify(s.items) && JSON.stringify(doc.wishes) === JSON.stringify(s.wishes) && doc.open === s.open && doc.name === s.name) return;
+    doc = s;
+    // Keep what someone is typing (and where) when the song list changes.
+    const ids = ['name', 'title', 'artist'];
+    const form = Object.fromEntries(ids.map(k => [k, $('#' + k) ? $('#' + k).value : null]));
+    const focused = document.activeElement && document.activeElement.id;
+    const msg = $('#msg') ? $('#msg').textContent : '';
+    render(s);
+    ids.forEach(k => { if (form[k] !== null && $('#' + k)) $('#' + k).value = form[k]; });
+    if ($('#msg')) $('#msg').textContent = msg;
+    if (focused && $('#' + focused)) $('#' + focused).focus();
+  } catch (e) { if (!doc) $('#app').innerHTML = `<p>${esc(e.message)}</p>`; }
+}
+
+if (!project || !id) $('#app').innerHTML = '<p>Este enlace no es válido.</p>';
+else { refresh(); setInterval(refresh, 10000); }
+</script>
+</body>
+</html>

@@ -42,7 +42,8 @@
 // (#v=<canción>&t=<título>&a=<artista>… o #al=<disco>&…): no guarda ni consulta nada.
 const frag = location.hash.slice(1);
 const p = new URLSearchParams(frag);
-const APK = 'https://github.com/YipikayeiGit/Myusic/releases/download/latest/Muzika.apk';
+// MUZIKA no se descarga desde aquí: quien la tiene comparte el enlace en privado.
+const NO_APP = location.href.split('#')[0];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isSong = !!p.get('v'), isAlbum = !!p.get('al');
 const title = p.get('t') || (isAlbum ? 'Disco' : 'Canción'), artist = p.get('a') || '';
@@ -50,7 +51,7 @@ const cover = /^https:\/\//.test(p.get('c') || '') ? p.get('c') : '';
 
 function openApp() {
   if (/android/i.test(navigator.userAgent)) {
-    location.href = `intent://c?${frag}#Intent;scheme=muzika;package=com.yipikayei.myusic;S.browser_fallback_url=${encodeURIComponent(APK)};end`;
+    location.href = `intent://c?${frag}#Intent;scheme=muzika;package=com.yipikayei.myusic;S.browser_fallback_url=${encodeURIComponent(NO_APP)};end`;
   } else {
     location.href = `muzika://c?${frag}`;
   }
@@ -68,9 +69,8 @@ if (!isSong && !isAlbum) {
       <div class="sub">${esc(artist)}</div>
       <div class="actions">
         <button class="btn" id="open">Abrir en MUZIKA</button>
-        <a class="btn ghost" href="${APK}">Descargar MUZIKA (Android)</a>
       </div>
-      <p class="muted">¿Usas MUZIKA en el PC? Copia este enlace y pégalo en el buscador.</p>
+      <p class="muted">¿No tienes MUZIKA? Pídele el enlace a quien te lo ha mandado. ¿Usas MUZIKA en el PC? Copia este enlace y pégalo en el buscador.</p>
     </div>`;
   document.getElementById('open').onclick = openApp;
 }

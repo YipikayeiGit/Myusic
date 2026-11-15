@@ -57,7 +57,8 @@
 const params = new URLSearchParams(location.hash.slice(1));
 const project = params.get('p'), id = params.get('id');
 const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
-const APK = 'https://github.com/YipikayeiGit/Myusic/releases/download/latest/Muzika.apk';
+// MUZIKA no se descarga desde aquí: quien la tiene comparte el enlace en privado.
+const NO_APP = location.href.split('#')[0];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -109,7 +110,7 @@ async function load() {
 
 function openApp() {
   const isAndroid = /android/i.test(navigator.userAgent);
-  if (isAndroid) location.href = `intent://s/${id}#Intent;scheme=muzika;package=com.yipikayei.myusic;S.browser_fallback_url=${encodeURIComponent(APK)};end`;
+  if (isAndroid) location.href = `intent://s/${id}#Intent;scheme=muzika;package=com.yipikayei.myusic;S.browser_fallback_url=${encodeURIComponent(NO_APP)};end`;
   else location.href = `muzika://s/${id}`;
 }
 
@@ -129,7 +130,7 @@ function render(s) {
   $('#app').innerHTML = `
     <div class="hero"><div class="kind">${kind}</div><h1>${esc(s.name)}</h1><div class="sub">${list.length} canciones</div>
       <p>${what}</p>
-      <div class="actions"><button class="btn${s.open ? ' ghost' : ''}" id="openApp">Abrir en MUZIKA</button><a class="btn ghost" href="${APK}">Descargar MUZIKA (Android)</a></div></div>
+      <div class="actions"><button class="btn${s.open ? ' ghost' : ''}" id="openApp">Abrir en MUZIKA</button></div><p class="muted" style="margin-top:10px">¿No tienes MUZIKA? Pídele el enlace a quien te ha invitado.</p></div>
     ${canAsk ? `<div class="card"><h2>${emoji} Pedir algo</h2><div class="muted">No hace falta instalar nada.</div>
       <label for="name">Tu nombre</label><input id="name" value="${esc(savedName)}" placeholder="Para que se sepa quién lo ha pedido" maxlength="40">
       ${kinds.length > 1 ? `<div class="kinds">${kinds.map(k => `<span class="chip${k === askKind ? ' on' : ''}" data-k="${k}">${{ song: 'Canción', artist: 'Artista', genre: 'Género' }[k]}</span>`).join('')}</div>` : ''}

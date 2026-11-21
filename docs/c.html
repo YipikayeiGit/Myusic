@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>MUZIKA · Te han compartido música</title>
-<meta property="og:title" content="Te han compartido música en MUZIKA">
-<meta property="og:description" content="Ábrelo en MUZIKA para escucharlo.">
+<title>VYBE · Te han compartido música</title>
+<meta property="og:title" content="Te han compartido música en VYBE">
+<meta property="og:description" content="Ábrelo en VYBE para escucharlo.">
 <meta property="og:image" content="https://yipikayeigit.github.io/Myusic/logo.png">
 <link rel="icon" href="logo.png">
 <style>
@@ -20,7 +20,7 @@
   .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 48px; }
   header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
   header img { width: 34px; height: 34px; border-radius: 8px; }
-  header b { letter-spacing: 2px; }
+  header img.word { width: auto; height: 22px; border-radius: 0; }
   .hero { background: linear-gradient(180deg, #3b1f5c, var(--panel)); border-radius: 16px; padding: 22px; text-align: center; }
   .cover { width: 220px; max-width: 70vw; aspect-ratio: 1; object-fit: cover; border-radius: 10px; box-shadow: 0 10px 40px #0008; background: var(--surface); display: block; margin: 0 auto 16px; }
   .kind { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-sec); }
@@ -34,15 +34,15 @@
 </head>
 <body>
 <div class="wrap">
-  <header><img src="logo.png" alt=""><b>MUZIKA</b></header>
+  <header><img src="logo.png" alt=""><img class="word" src="vybe.png" alt="VYBE"></header>
   <div id="app"></div>
 </div>
 <script>
-// Página pública de una canción o disco compartido desde MUZIKA. Todo viene en el enlace
+// Página pública de una canción o disco compartido desde VYBE. Todo viene en el enlace
 // (#v=<canción>&t=<título>&a=<artista>… o #al=<disco>&…): no guarda ni consulta nada.
 const frag = location.hash.slice(1);
 const p = new URLSearchParams(frag);
-// MUZIKA no se descarga desde aquí: quien la tiene comparte el enlace en privado.
+// VYBE no se descarga desde aquí: quien la tiene comparte el enlace en privado.
 const NO_APP = location.href.split('#')[0];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isSong = !!p.get('v'), isAlbum = !!p.get('al');
@@ -60,7 +60,7 @@ function openApp() {
 if (!isSong && !isAlbum) {
   document.getElementById('app').innerHTML = '<div class="hero"><h1>Enlace no válido</h1><div class="sub">Pide que te lo vuelvan a compartir.</div></div>';
 } else {
-  document.title = `${title}${artist ? ' · ' + artist : ''} · MUZIKA`;
+  document.title = `${title}${artist ? ' · ' + artist : ''} · VYBE`;
   document.getElementById('app').innerHTML = `
     <div class="hero">
       ${cover ? `<img class="cover" src="${esc(cover)}" alt="">` : ''}
@@ -68,9 +68,9 @@ if (!isSong && !isAlbum) {
       <h1>${esc(title)}</h1>
       <div class="sub">${esc(artist)}</div>
       <div class="actions">
-        <button class="btn" id="open">Abrir en MUZIKA</button>
+        <button class="btn" id="open">Abrir en VYBE</button>
       </div>
-      <p class="muted">¿No tienes MUZIKA? Pídele el enlace a quien te lo ha mandado. ¿Usas MUZIKA en el PC? Copia este enlace y pégalo en el buscador.</p>
+      <p class="muted">¿No tienes VYBE? Pídele el enlace a quien te lo ha mandado. ¿Usas VYBE en el PC? Copia este enlace y pégalo en el buscador.</p>
     </div>`;
   document.getElementById('open').onclick = openApp;
 }

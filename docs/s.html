@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>MUZIKA · Playlist compartida</title>
+<title>VYBE · Playlist compartida</title>
 <link rel="icon" href="logo.png">
 <style>
   :root {
@@ -17,7 +17,7 @@
   .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
   header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
   header img { width: 34px; height: 34px; border-radius: 8px; }
-  header b { letter-spacing: 2px; }
+  header img.word { width: auto; height: 22px; border-radius: 0; }
   .hero { background: linear-gradient(180deg, #3b1f5c, var(--panel)); border-radius: 16px; padding: 20px; }
   .kind { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-sec); }
   h1 { margin: 6px 0 4px; font-size: 28px; line-height: 1.15; word-break: break-word; }
@@ -47,17 +47,17 @@
 </head>
 <body>
 <div class="wrap">
-  <header><img src="logo.png" alt=""><b>MUZIKA</b></header>
+  <header><img src="logo.png" alt=""><img class="word" src="vybe.png" alt="VYBE"></header>
   <div id="app"><p class="muted">Cargando…</p></div>
 </div>
 <script>
-// Página pública de una playlist compartida de MUZIKA: abre la app o, en una fiesta,
+// Página pública de una playlist compartida de VYBE: abre la app o, en una fiesta,
 // deja añadir canciones desde el navegador. No guarda ninguna clave: el proyecto y la
 // playlist vienen en el propio enlace (#p=<proyecto>&id=<playlist>).
 const params = new URLSearchParams(location.hash.slice(1));
 const project = params.get('p'), id = params.get('id');
 const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
-// MUZIKA no se descarga desde aquí: quien la tiene comparte el enlace en privado.
+// VYBE no se descarga desde aquí: quien la tiene comparte el enlace en privado.
 const NO_APP = location.href.split('#')[0];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -125,12 +125,12 @@ function render(s) {
   const until = s.closesAt ? new Date(s.closesAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
   const what = s.mode === 'party'
     ? (!s.open ? 'Esta fiesta ya se ha cerrado.' : !canAsk ? `${esc(s.ownerName)} elige la música de esta fiesta.` : `Pide ${[kinds.includes('song') && 'canciones', kinds.includes('artist') && 'artistas', kinds.includes('genre') && 'géneros'].filter(Boolean).join(' o ')}: todo suena por turnos, una de cada persona. Si pides un artista o un género, irán sonando canciones de eso en tus turnos. Se cierra a las ${until}.`)
-    : s.mode === 'follow' ? 'Ábrela en MUZIKA para seguirla (siempre al día) o copiarla y tener la tuya.' : 'Ábrela en MUZIKA para uniros y añadir canciones juntos.';
+    : s.mode === 'follow' ? 'Ábrela en VYBE para seguirla (siempre al día) o copiarla y tener la tuya.' : 'Ábrela en VYBE para uniros y añadir canciones juntos.';
   const savedName = localStorage.getItem('muzikaName') || '';
   $('#app').innerHTML = `
     <div class="hero"><div class="kind">${kind}</div><h1>${esc(s.name)}</h1><div class="sub">${list.length} canciones</div>
       <p>${what}</p>
-      <div class="actions"><button class="btn${s.open ? ' ghost' : ''}" id="openApp">Abrir en MUZIKA</button></div><p class="muted" style="margin-top:10px">¿No tienes MUZIKA? Pídele el enlace a quien te ha invitado.</p></div>
+      <div class="actions"><button class="btn${s.open ? ' ghost' : ''}" id="openApp">Abrir en VYBE</button></div><p class="muted" style="margin-top:10px">¿No tienes VYBE? Pídele el enlace a quien te ha invitado.</p></div>
     ${canAsk ? `<div class="card"><h2>${emoji} Pedir algo</h2><div class="muted">No hace falta instalar nada.</div>
       <label for="name">Tu nombre</label><input id="name" value="${esc(savedName)}" placeholder="Para que se sepa quién lo ha pedido" maxlength="40">
       ${kinds.length > 1 ? `<div class="kinds">${kinds.map(k => `<span class="chip${k === askKind ? ' on' : ''}" data-k="${k}">${{ song: 'Canción', artist: 'Artista', genre: 'Género' }[k]}</span>`).join('')}</div>` : ''}
